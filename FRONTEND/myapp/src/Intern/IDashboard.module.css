@@ -1,0 +1,30 @@
+.container {
+  padding: 20px;
+}
+
+.profile {
+  margin-bottom: 20px;
+}
+
+.buttons button {
+  margin-right: 10px;
+  padding: 8px 16px;
+}
+
+.message {
+  color: green;
+  margin: 10px 0;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.table th,
+.table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: center;
+}
