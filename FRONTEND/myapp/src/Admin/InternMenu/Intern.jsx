@@ -5,17 +5,16 @@ import styles from "./Intern.module.css";
 const Interns = () => {
   const [interns, setInterns] = useState([]);
   const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [editIntern, setEditIntern] = useState(null);
   const [message, setMessage] = useState("");
 
   const ADMIN_TOKEN = "302fa18b3e95042e1ad756a1e11c6bda47add616";
 
- 
+  
   const fetchInterns = async () => {
     try {
       const res = await axios.get("http://127.0.0.1:8000/api/interns/", {
-        headers: {
-          Authorization: `Token ${ADMIN_TOKEN}`,
-        },
+        headers: { Authorization: `Token ${ADMIN_TOKEN}` },
       });
       setInterns(res.data);
     } catch (err) {
@@ -28,28 +27,42 @@ const Interns = () => {
   }, []);
 
   
-  const handleAdd = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
-      await axios.post(
-        "http://127.0.0.1:8000/api/interns/add/",
-        form,
-        {
-          headers: {
-            Authorization: `Token ${ADMIN_TOKEN}`,
-          },
-        }
-      );
+      if (editIntern) {
+        
+        await axios.patch(
+          `http://127.0.0.1:8000/api/interns/${editIntern.id}/edit/`,
+          form,
+          {
+            headers: { Authorization: `Token ${ADMIN_TOKEN}` },
+          }
+        );
+        setMessage("Intern updated successfully");
+      } else {
+        
+        await axios.post(
+          "http://127.0.0.1:8000/api/interns/add/",
+          form,
+          {
+            headers: { Authorization: `Token ${ADMIN_TOKEN}` },
+          }
+        );
+        setMessage("Intern added successfully");
+      }
+
       setForm({ name: "", email: "", password: "" });
-      setMessage("Intern added successfully");
+      setEditIntern(null);
       fetchInterns();
     } catch (err) {
       console.error(err);
-      setMessage("Failed to add intern");
+      setMessage("Operation failed");
     }
   };
 
- 
+  
   const handleDelete = async (id) => {
     if (!window.confirm("Delete this intern?")) return;
 
@@ -57,9 +70,7 @@ const Interns = () => {
       await axios.delete(
         `http://127.0.0.1:8000/api/interns/${id}/delete/`,
         {
-          headers: {
-            Authorization: `Token ${ADMIN_TOKEN}`,
-          },
+          headers: { Authorization: `Token ${ADMIN_TOKEN}` },
         }
       );
       fetchInterns();
@@ -69,19 +80,47 @@ const Interns = () => {
   };
 
  
-  const downloadInterns = () => {
-    window.open(
-      "http://127.0.0.1:8000/api/interns/download/",
-      "_blank"
-    );
+  const handleEdit = (intern) => {
+    setEditIntern(intern);
+    setForm({
+      name: intern.name,
+      email: intern.email,
+      password: "", 
+    });
   };
+
+ 
+  const downloadInterns = async () => {
+  try {
+    const response = await axios.get(
+      "http://127.0.0.1:8000/api/interns/download/",
+      {
+        headers: {
+          Authorization: `Token ${ADMIN_TOKEN}`,
+        },
+        responseType: "blob",
+      }
+    );
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "interns.csv");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } catch (error) {
+    console.error("Download failed", error);
+  }
+};
+
 
   return (
     <div className={styles.interns}>
       <h2>Intern Management</h2>
 
       
-      <form onSubmit={handleAdd} className={styles.form}>
+      <form onSubmit={handleSubmit} className={styles.form}>
         <input
           placeholder="Name"
           value={form.name}
@@ -96,12 +135,26 @@ const Interns = () => {
         />
         <input
           type="password"
-          placeholder="Password"
+          placeholder="Password "
           value={form.password}
           onChange={(e) => setForm({ ...form, password: e.target.value })}
-          required
         />
-        <button type="submit">Add Intern</button>
+
+        <button type="submit">
+          {editIntern ? "Update Intern" : "Add Intern"}
+        </button>
+
+        {editIntern && (
+          <button
+            type="button"
+            onClick={() => {
+              setEditIntern(null);
+              setForm({ name: "", email: "", password: "" });
+            }}
+          >
+            Cancel
+          </button>
+        )}
       </form>
 
       {message && <p>{message}</p>}
@@ -111,13 +164,14 @@ const Interns = () => {
         Download Intern List
       </button>
 
-      
+     
       <table className={styles.table}>
         <thead>
           <tr>
             <th>SI NO</th>
             <th>Name</th>
             <th>Email</th>
+            
             <th>Action</th>
           </tr>
         </thead>
@@ -127,8 +181,17 @@ const Interns = () => {
               <td>{index + 1}</td>
               <td>{i.name}</td>
               <td>{i.email}</td>
+              
               <td>
                 <button
+                  onClick={() => handleEdit(i)}
+                  className={styles.editBtn}
+                >
+                  Edit
+                </button>
+
+                <button
+                  style={{ marginLeft: "10px" }}
                   onClick={() => handleDelete(i.id)}
                   className={styles.deleteBtn}
                 >

@@ -7,7 +7,9 @@ from .views import (
     attendance_list,
     delete_attendance,
     download_attendance,
-    delete_intern
+    delete_intern,
+    download_interns,
+    edit_intern
 )
 
 urlpatterns = [
@@ -17,6 +19,7 @@ urlpatterns = [
     
     path("interns/add/", add_intern, name="add-intern"),
     path("interns/", list_interns, name="list-interns"),
+    path("interns/download/", download_interns, name="download-interns"),
 
     
     path("attendance/mark/", mark_attendance, name="mark-attendance"),
@@ -25,5 +28,6 @@ urlpatterns = [
 
     path("attendance/download/", download_attendance, name="download-attendance"),
     path("interns/<int:pk>/delete/", delete_intern, name="delete-intern"),
+    path('interns/<int:pk>/edit/', edit_intern, name='edit-intern'),
 
 ]

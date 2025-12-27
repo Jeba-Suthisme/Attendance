@@ -62,14 +62,14 @@ def login_view(request):
 
 
 
-# Mark attendance (only self)
-@api_view(['POST'])
 
+@api_view(['POST'])
 def intern_mark_attendance(request):
     status_value = request.data.get("status")
     if status_value not in ["present", "absent"]:
         return Response({"error": "Invalid status"}, status=400)
 
+    
     attendance, created = Attendance.objects.get_or_create(
         user=request.user,
         date=date.today(),
@@ -77,13 +77,13 @@ def intern_mark_attendance(request):
     )
 
     if not created:
-        attendance.status = status_value
-        attendance.save()
+        
+        return Response({"error": "Attendance already marked. Cannot change."}, status=403)
 
     return Response({"message": "Attendance marked"})
 
 
-# Attendance history
+
 @api_view(['GET'])
 @authentication_classes([TokenAuthentication])
 @permission_classes([IsAuthenticated])

@@ -4,13 +4,16 @@ import styles from "./Attendance.module.css";
 
 const Attendance = () => {
   const [interns, setInterns] = useState([]);
-  const [selectedIntern, setSelectedIntern] = useState("");
   const [attendanceHistory, setAttendanceHistory] = useState([]);
 
   const [filterIntern, setFilterIntern] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [filterDateFrom, setFilterDateFrom] = useState("");
+  const [filterDateTo, setFilterDateTo] = useState("");
 
- 
+  const [selectedIntern, setSelectedIntern] = useState("");
+  const [selectedDate, setSelectedDate] = useState("");
+
   const fetchInterns = async () => {
     try {
       const res = await axios.get("http://127.0.0.1:8000/api/interns/");
@@ -20,10 +23,16 @@ const Attendance = () => {
     }
   };
 
-  
   const fetchAttendance = async () => {
     try {
-      const res = await axios.get("http://127.0.0.1:8000/api/attendance/");
+      const res = await axios.get("http://127.0.0.1:8000/api/attendance/", {
+        params: {
+          intern_id: filterIntern || undefined,
+          status: filterStatus || undefined,
+          start_date: filterDateFrom || undefined,
+          end_date: filterDateTo || undefined,
+        },
+      });
       setAttendanceHistory(res.data);
     } catch (err) {
       console.error("Error fetching attendance", err);
@@ -32,13 +41,16 @@ const Attendance = () => {
 
   useEffect(() => {
     fetchInterns();
-    fetchAttendance();
   }, []);
 
- 
+  
+  useEffect(() => {
+    fetchAttendance();
+  }, [filterIntern, filterStatus, filterDateFrom, filterDateTo]);
+
   const markAttendance = async (status) => {
-    if (!selectedIntern) {
-      alert("Select an intern");
+    if (!selectedIntern || !selectedDate) {
+      alert("Select intern and date");
       return;
     }
 
@@ -46,27 +58,26 @@ const Attendance = () => {
       await axios.post("http://127.0.0.1:8000/api/attendance/mark/", {
         intern_id: selectedIntern,
         status: status,
+        date: selectedDate,
       });
+      setSelectedIntern("");
+      setSelectedDate("");
       fetchAttendance();
     } catch (err) {
       console.error("Error marking attendance", err);
     }
   };
 
-  
   const deleteAttendance = async (id) => {
     if (!window.confirm("Delete this attendance record?")) return;
 
     try {
-      await axios.delete(
-        `http://127.0.0.1:8000/api/attendance/${id}/delete/`
-      );
+      await axios.delete(`http://127.0.0.1:8000/api/attendance/${id}/delete/`);
       fetchAttendance();
     } catch (err) {
       console.error("Error deleting attendance", err);
     }
   };
-
 
   const downloadAttendance = async () => {
     try {
@@ -76,6 +87,8 @@ const Attendance = () => {
           params: {
             intern_id: filterIntern || undefined,
             status: filterStatus || undefined,
+            start_date: filterDateFrom || undefined,
+            end_date: filterDateTo || undefined,
           },
           responseType: "blob",
         }
@@ -97,25 +110,31 @@ const Attendance = () => {
     <div className={styles.attendance}>
       <h2>Attendance Management</h2>
 
-      
       <h3>Mark Attendance</h3>
-      <select
-        value={selectedIntern}
-        onChange={(e) => setSelectedIntern(e.target.value)}
-      >
-        <option value="">Select Intern</option>
-        {interns.map((intern) => (
-          <option key={intern.id} value={intern.id}>
-            {intern.name}
-          </option>
-        ))}
-      </select>
+      <div className={styles.markAttendance}>
+        <select
+          value={selectedIntern}
+          onChange={(e) => setSelectedIntern(e.target.value)}
+        >
+          <option value="">Select Intern</option>
+          {interns.map((intern) => (
+            <option key={intern.id} value={intern.id}>
+              {intern.name}
+            </option>
+          ))}
+        </select>
 
-      <button onClick={() => markAttendance("present")}>Present</button>
-      <button onClick={() => markAttendance("absent")}>Absent</button>
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+        />
 
-      
-      <h3>Download Attendance</h3>
+        <button style={{marginLeft:"20px"}} onClick={() => markAttendance("present")}>Present</button>
+        <button onClick={() => markAttendance("absent")}>Absent</button>
+      </div>
+
+      <h3>Filters & Download</h3>
       <div className={styles.downloadFilters}>
         <select
           value={filterIntern}
@@ -138,10 +157,27 @@ const Attendance = () => {
           <option value="absent">Absent</option>
         </select>
 
-        <button onClick={downloadAttendance}>Download CSV</button>
+        <label style={{marginLeft:"10px"}}>
+          Start Date:
+          <input
+            type="date"
+            value={filterDateFrom}
+            onChange={(e) => setFilterDateFrom(e.target.value)}
+          />
+        </label>
+
+        <label style={{marginLeft:"20px"}}>
+          End Date:
+          <input
+            type="date"
+            value={filterDateTo}
+            onChange={(e) => setFilterDateTo(e.target.value)}
+          />
+        </label>
+
+        <button style={{marginLeft:"60px"}} onClick={downloadAttendance}>Download CSV</button>
       </div>
 
-      
       <h3>Attendance History</h3>
       <table border="1">
         <thead>
@@ -161,9 +197,7 @@ const Attendance = () => {
               <td>{a.date}</td>
               <td>{a.status}</td>
               <td>
-                <button onClick={() => deleteAttendance(a.id)}>
-                  Delete
-                </button>
+                <button onClick={() => deleteAttendance(a.id)}>Delete</button>
               </td>
             </tr>
           ))}
